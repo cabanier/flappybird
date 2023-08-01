@@ -10,7 +10,7 @@ AFRAME.registerComponent("track", {
   },
 
   degreesToPosition: function(degrees) {
-    let radians = THREE.Math.degToRad(degrees);
+    let radians = THREE.MathUtils.degToRad(degrees);
     let z = Math.cos(radians) * this.data.radius;
     let x = -1 * Math.sin(radians) * this.data.radius;
     return {x, y:0, z};
@@ -116,7 +116,7 @@ AFRAME.registerComponent("track", {
     this.player.object3D.position.z = position.z;
 
     let rotation = this.degreesToPlayerRotation(this.playerDegrees);
-    this.player.object3D.rotation.y = THREE.Math.degToRad(rotation.y);
+    this.player.object3D.rotation.y = THREE.MathUtils.degToRad(rotation.y);
   },
 
   collides: function () {
