@@ -44,12 +44,16 @@ AFRAME.registerComponent("button", {
   
 });
 
-AFRAME.components['vr-mode-ui'].Component.prototype.toggleEnterARButtonIfNeeded = function () {
+const originalToggleEnterARButtonIfNeeded =
+  AFRAME.components["vr-mode-ui"].Component.prototype.toggleEnterARButtonIfNeeded;
+
+AFRAME.components["vr-mode-ui"].Component.prototype.toggleEnterARButtonIfNeeded = function () {
   if (AFRAME.utils.device.checkVRSupport()) {
-    if (this.enterAREl.parentNode) {
+    if (this.enterAREl && this.enterAREl.parentNode) {
       this.enterAREl.parentNode.removeChild(this.enterAREl);
     }
     return;
   }
-  c.toggleEnterARButtonIfNeeded();
+
+  originalToggleEnterARButtonIfNeeded.call(this);
 };

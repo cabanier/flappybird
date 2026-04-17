@@ -26,8 +26,8 @@
     <a-scene renderer="highRefreshRate:false;" fog="type:linear;color:#d7a84d; density:0.05; near:0; far:100;">
 
       <a-assets>
-        <img id="groundTexture" src="https://cdn.glitch.com/630efde0-95ba-4f43-9963-b7b800d690e8%2Fground4.png?v=1573860783072">
-        <img id="skyTexture" src="https://cdn.glitch.com/630efde0-95ba-4f43-9963-b7b800d690e8%2Fsky5.png?v=1573863271864">
+        <img id="groundTexture" src="groundTexture.png">
+        <img id="skyTexture" src="skyTexture.jpg">
         <audio id="flapSound" src="audio/flap.mp3" preload="auto"></audio>
         <audio id="hitSound" src="audio/hit.mp3" preload="auto"></audio>
         <audio id="menuSound" src="audio/menu.mp3" preload="auto"></audio>
@@ -39,10 +39,11 @@
       <a-entity light="type:ambient; color:#d8d8d8"></a-entity>
       <a-entity light="type:directional; ccastShadow:true; color:#FFF; intensity:0.6;" position="-0.5 1 1"></a-entity>
 
-      <a-sky material="fog:false;" src="#skyTexture" repeat="5"></a-sky>
+      <a-sky color="#4d98cb" material="shader:flat; fog:false;"></a-sky>
+      <a-cylinder material="src:#skyTexture; repeat:5 1; side:back; shader:flat; fog:false;" radius="80" height="50" open-ended="true" segments-radial="64" position="0 17 0"></a-cylinder>
       <a-plane src="#groundTexture" material="flatShading:true;" shadow="cast:false; receive:true;" roughness="1" height="300" width="300" position="0 -8 0" rotation="-90 0 0" repeat="30 30"></a-plane>
 
-      <a-entity track="pipes:14; radius:50; speed:0.1; jump:0.13; gravity:-0.003; gap:5;"></a-entity>
+      <a-entity track="pipes:14; radius:50; speed:0.1; jump:0.13; gravity:-0.003; gap:5; startGap:7; gapShrinkRate:0.15;"></a-entity>
       <!-- <a-entity track="pipes:10; radius:50; speed:0.07; jump:0.14; gravity:-0.004; gap:3;"></a-entity> -->
       <!-- <a-entity track="pipes:10; radius:50; speed:0.10; jump:0.10; gravity:-0.003; gap:3;"></a-entity> -->
 

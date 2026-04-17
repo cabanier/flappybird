@@ -12,6 +12,7 @@ AFRAME.registerComponent("pipe", {
     
     let bot = document.createElement("a-entity");
     let top = document.createElement("a-entity");
+    this.top = top;
     
     let bBox1 = document.createElement("a-box");
     let bBox2 = document.createElement("a-box");
@@ -121,6 +122,11 @@ AFRAME.registerComponent("pipe", {
     this.el.appendChild(bot);
     this.el.appendChild(top);
     
+  },
+
+  update: function () {
+    if (!this.top) return;
+    this.top.setAttribute("position", {x: 0, y: this.data.gap, z: 0});
   }
   
 });

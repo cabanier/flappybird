@@ -6,7 +6,9 @@ AFRAME.registerComponent("track", {
     speed: {type: 'number', default: 0.1},
     jump: {type: 'number', default: 0.1},
     gravity: {type: 'number', default: -0.003},
-    gap: {type: 'number', default: 3}
+    gap: {type: 'number', default: 3},
+    startGap: {type: 'number', default: 0},
+    gapShrinkRate: {type: 'number', default: 0.15}
   },
 
   degreesToPosition: function(degrees) {
@@ -20,7 +22,22 @@ AFRAME.registerComponent("track", {
     return {y: 90-degrees}
   },
 
+  getGapForScore: function (score) {
+    return Math.max(this.minimumGap, this.startGap - score * this.data.gapShrinkRate);
+  },
+
+  applyGapToPipes: function (gap) {
+    this.currentGap = gap;
+    for (let i = 0; i < this.pipes.length; i++) {
+      this.pipes[i].gap = gap;
+      this.pipes[i].entity.setAttribute("pipe", "gap", gap);
+    }
+  },
+
   init: function() {
+    this.minimumGap = this.data.gap;
+    this.startGap = Math.max(this.minimumGap, this.data.startGap || (this.minimumGap + 1.5));
+    this.currentGap = this.startGap;
     this.pipes = [];
     for (let i=0; i<this.data.pipes; i++) {
       let degrees = 360/this.data.pipes*i;
@@ -30,10 +47,10 @@ AFRAME.registerComponent("track", {
         else height = Math.floor((Math.random() * 8) + 8); // rand from 8 to 15
       }
       let pipe = document.createElement("a-entity");
-      pipe.setAttribute("pipe", {height, gap: this.data.gap});
+      pipe.setAttribute("pipe", {height, gap: this.currentGap});
       pipe.setAttribute("position", this.degreesToPosition(degrees));
       this.el.appendChild(pipe);
-      this.pipes[i] = {degrees, height};
+      this.pipes[i] = {degrees, height, gap: this.currentGap, entity: pipe};
     }
 
     this.scoreCurrent = 0;
@@ -71,6 +88,7 @@ AFRAME.registerComponent("track", {
       this.dialog.components.dialog.best.setAttribute("value", this.scoreBest);
       this.dialog.setAttribute("visible", true);
     } else if (state == "reset") {
+      this.applyGapToPipes(this.startGap);
       this.playerVerticalSpeed = 0;
       this.nextPipe = 1;
       this.playerDegrees = 10;
@@ -81,6 +99,7 @@ AFRAME.registerComponent("track", {
       this.dialog.setAttribute("visible", false);
       if (this.scoreCurrent > this.scoreBest) this.scoreBest = this.scoreCurrent;
       this.scoreCurrent = 0;
+      this.applyGapToPipes(this.startGap);
     }
   },
 
@@ -122,14 +141,17 @@ AFRAME.registerComponent("track", {
   collides: function () {
     let cameraPosition = new THREE.Vector3();
     this.player.components.player.camera.object3D.getWorldPosition(cameraPosition);
+    let nextPipe = this.pipes[this.nextPipe];
+    let nextPipeGap = nextPipe.gap;
 
     if (this.player.object3D.position.y < FLOOR_HEIGHT) {
       return true;
     }
 
-    if (this.playerDegrees > this.pipes[this.nextPipe].degrees + 2) {
-      if (cameraPosition.y < this.data.gap + DEFAULT_HEIGHT){
+    if (this.playerDegrees > nextPipe.degrees + 2) {
+      if (cameraPosition.y < nextPipeGap + DEFAULT_HEIGHT){
         this.scoreCurrent++;
+        this.applyGapToPipes(this.getGapForScore(this.scoreCurrent));
         audioPlayer.components['sound__score'].playSound();
       }
       this.nextPipe++;
@@ -140,10 +162,10 @@ AFRAME.registerComponent("track", {
       return false;
     }
 
-    if (this.playerDegrees > this.pipes[this.nextPipe].degrees - 2) {
-      if (cameraPosition.y > this.data.gap + DEFAULT_HEIGHT) return false;
-      if (cameraPosition.y > FLOOR_HEIGHT + this.pipes[this.nextPipe].height + this.data.gap) return true;
-      if (cameraPosition.y > FLOOR_HEIGHT + this.pipes[this.nextPipe].height) return false;
+    if (this.playerDegrees > nextPipe.degrees - 2) {
+      if (cameraPosition.y > nextPipeGap + DEFAULT_HEIGHT) return false;
+      if (cameraPosition.y > FLOOR_HEIGHT + nextPipe.height + nextPipeGap) return true;
+      if (cameraPosition.y > FLOOR_HEIGHT + nextPipe.height) return false;
       return true;
     }
 
