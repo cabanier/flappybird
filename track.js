@@ -1,3 +1,5 @@
+const BEST_SCORE_STORAGE_KEY = "flappybird-vr-best-score";
+
 AFRAME.registerComponent("track", {
 
   schema: {
@@ -24,6 +26,42 @@ AFRAME.registerComponent("track", {
 
   getGapForScore: function (score) {
     return Math.max(this.minimumGap, this.startGap - score * this.data.gapShrinkRate);
+  },
+
+  loadBestScore: function () {
+    try {
+      let savedScore = window.localStorage.getItem(BEST_SCORE_STORAGE_KEY);
+      if (savedScore === null) return 0;
+
+      let parsedScore = parseInt(savedScore, 10);
+      if (Number.isNaN(parsedScore) || parsedScore < 0) return 0;
+      return parsedScore;
+    } catch (err) {
+      return 0;
+    }
+  },
+
+  saveBestScore: function () {
+    try {
+      window.localStorage.setItem(BEST_SCORE_STORAGE_KEY, String(this.scoreBest));
+    } catch (err) {
+    }
+  },
+
+  updateBestScore: function () {
+    if (this.scoreCurrent <= this.scoreBest) return;
+    this.scoreBest = this.scoreCurrent;
+    this.saveBestScore();
+  },
+
+  syncDialogScores: function () {
+    if (!this.dialog) return;
+
+    let dialogComponent = this.dialog.components && this.dialog.components.dialog;
+    if (!dialogComponent || !dialogComponent.score || !dialogComponent.best) return;
+
+    dialogComponent.score.setAttribute("value", this.scoreCurrent);
+    dialogComponent.best.setAttribute("value", this.scoreBest);
   },
 
   applyGapToPipes: function (gap) {
@@ -54,7 +92,7 @@ AFRAME.registerComponent("track", {
     }
 
     this.scoreCurrent = 0;
-    this.scoreBest = 0;
+    this.scoreBest = this.loadBestScore();
 
     this.player = document.createElement("a-entity");
     this.player.setAttribute("player", "");
@@ -62,6 +100,10 @@ AFRAME.registerComponent("track", {
     this.setState("reset");
 
     this.dialog = document.createElement("a-entity");
+    this.dialog.addEventListener("loaded", this.syncDialogScores.bind(this));
+    this.dialog.addEventListener("componentinitialized", (evt) => {
+      if (evt.detail.name === "dialog") this.syncDialogScores();
+    });
     this.dialog.setAttribute("dialog", "");
     let position = this.degreesToPosition(this.playerDegrees);
     position.x -= 5;
@@ -71,6 +113,7 @@ AFRAME.registerComponent("track", {
     this.dialog.setAttribute("rotation", this.degreesToPlayerRotation(this.playerDegrees));
     this.dialog.setAttribute("scale", {x:5, y:5, z:5});
     this.el.appendChild(this.dialog);
+    window.requestAnimationFrame(this.syncDialogScores.bind(this));
 
     let button = document.createElement("a-entity");
     button.setAttribute("button", "");
@@ -84,9 +127,9 @@ AFRAME.registerComponent("track", {
   setState: function (state) {
     this.state = state;
     if (state == "stopped") {
-      this.dialog.components.dialog.score.setAttribute("value", this.scoreCurrent);
-      this.dialog.components.dialog.best.setAttribute("value", this.scoreBest);
-      this.dialog.setAttribute("visible", true);
+      this.updateBestScore();
+      this.syncDialogScores();
+      if (this.dialog) this.dialog.setAttribute("visible", true);
     } else if (state == "reset") {
       this.applyGapToPipes(this.startGap);
       this.playerVerticalSpeed = 0;
@@ -95,9 +138,10 @@ AFRAME.registerComponent("track", {
       this.player.setAttribute("position", this.degreesToPosition(this.playerDegrees));
       this.player.object3D.position.y = 0;
       this.player.setAttribute("rotation", this.degreesToPlayerRotation(this.playerDegrees));
+      this.syncDialogScores();
+      if (this.dialog) this.dialog.setAttribute("visible", true);
     } else {
-      this.dialog.setAttribute("visible", false);
-      if (this.scoreCurrent > this.scoreBest) this.scoreBest = this.scoreCurrent;
+      if (this.dialog) this.dialog.setAttribute("visible", false);
       this.scoreCurrent = 0;
       this.applyGapToPipes(this.startGap);
     }
@@ -151,6 +195,7 @@ AFRAME.registerComponent("track", {
     if (this.playerDegrees > nextPipe.degrees + 2) {
       if (cameraPosition.y < nextPipeGap + DEFAULT_HEIGHT){
         this.scoreCurrent++;
+        this.updateBestScore();
         this.applyGapToPipes(this.getGapForScore(this.scoreCurrent));
         audioPlayer.components['sound__score'].playSound();
       }
